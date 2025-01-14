@@ -1,15 +1,12 @@
-import express from 'express';
 import pino from 'pino-http';
+import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { getEnvVar } from './utils/getEnvVar.js';
-import { ContactCollection } from './contacts/contacts.js';
+import { getAllContacts, getContactById } from './services/contacts.js';
 
-
-dotenv.config();
 const PORT = Number(getEnvVar('PORT', '3000'));
 
-export const setupServer = async() => {
+export const setupServer = () => {
   const app = express();
 
   app.use(express.json());
@@ -23,47 +20,42 @@ export const setupServer = async() => {
     }),
   );
 
- app.get('/contacts', async (req, res, next) => {
-   try {
-     const getAllContacts = await ContactCollection.find({});
-     res.status(200).json({
-       status: 200,
-       message: 'Successfully found contacts!',
-       data: getAllContacts,
-     });
-   } catch (error) {
-     next(error);
-   }
- });
-  
-   app.get('/contacts/:contactId', async (req, res, next) => {
-     try {
-       const { contactId } = req.params;
-       const getContactById = await ContactCollection.findById(contactId);
+  app.get('/contacts', async (req, res) => {
+    const contacts = await getAllContacts();
 
-       if (!getContactById) {
-         return res.status(404).json({
-           message: 'Contact not found',
-         });
-       }
+    res.status(200).json({
+      status: 200,
+      message: 'Successfully found contacts!',
+      data: contacts,
+    });
+  });
 
-       res.status(200).json({
-         status: 200,
-         message: 'Successfully found contact with id {contactId}!',
-         data: getContactById,
-       });
-     } catch (error) {
-       next(error);
-     }
-   });
+  app.get('/contacts/:contactId', async (req, res, next) => {
+    const { contactId } = req.params;
+    const contact = await getContactById(contactId);
 
-  app.use('*', (req, res) => {
+    if (!contact) {
+      res.status(404).json({
+        status: 404,
+        message: 'Contact not found',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      status: 200,
+      message: `Successfully found contact with id ${contactId}!`,
+      data: contact,
+    });
+  });
+
+  app.use('*', (req, res, next) => {
     res.status(404).json({
       message: 'Not found',
     });
   });
 
-  app.use((err, req, res) => {
+  app.use((err, req, res, next) => {
     res.status(500).json({
       message: 'Something went wrong',
       error: err.message,
@@ -74,6 +66,3 @@ export const setupServer = async() => {
     console.log(`Server is running on port ${PORT}`);
   });
 };
-
-
-export default setupServer;
