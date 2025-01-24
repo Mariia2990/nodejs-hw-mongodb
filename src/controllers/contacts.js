@@ -6,15 +6,28 @@ import {
   getContactById,
   updateContact,
 } from '../services/contacts.js';
+import { parsePaginationParams } from '../utils/parsePaginationParams.js';
+import { parseSortParams } from '../utils/parseSortParams.js';
+import { parseFilterParams } from '../utils/parseFilterParams.js';
 
 export const getContactsController = async (req, res, next) => {
   try {
-    const contacts = await getAllContacts();
-    res.status(200).json({
-      status: 200,
-      message: 'Successfully found contacts!',
-      data: contacts,
-    });
+    const { page, perPage } = parsePaginationParams(req.query);
+    const { sortBy, sortOrder } = parseSortParams(req.query);
+    const filter = parseFilterParams(req.query);
+  const contacts = await getAllContacts({
+    page,
+    perPage,
+    sortBy,
+    sortOrder,
+    filter,
+  });
+
+  res.status(200).json({
+    status: 200,
+    message: 'Successfully found contacts!',
+    data: contacts,
+  });
   } catch (error) {
     next(error);
   }
@@ -33,21 +46,25 @@ export const getContactByIdController = async (req, res, next) => {
       data: contact,
     });
   } catch (error) {
+    console.error('Error fetching contact:', error);
     next(error);
   }
 };
 
 export const createContactController = async (req, res, next) => {
-  try {
+  const { name, phoneNumber, contactType } = req.body;
+  if (!name || !phoneNumber || !contactType) {
+    return res.status(400).json({
+      status: 400,
+      message: 'Name, Phone number and Contact type are required.'
+    });
+  }
     const contact = await createContact(req.body);
     res.status(201).json({
       status: 201,
       message: 'Successfully created a contact!',
       data: contact,
     });
-  } catch (error) {
-    next(error);
-  }
 };
 
 export const patchContactController = async (req, res, next) => {
@@ -60,7 +77,7 @@ export const patchContactController = async (req, res, next) => {
     }
     res.json({
       status: 200,
-      message: `Successfully patched a student!`,
+      message: `Successfully patched a contact!`,
       data: result.contact,
     });
   } catch (error) {
@@ -80,3 +97,5 @@ export const deleteContactController = async (req, res, next) => {
     next(error);
   }
 };
+
+
