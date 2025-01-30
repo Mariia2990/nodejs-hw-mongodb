@@ -12,10 +12,13 @@ import { parseFilterParams } from '../utils/parseFilterParams.js';
 
 export const getContactsController = async (req, res, next) => {
   try {
+    const { _id: userId, role } = req.user;
     const { page, perPage } = parsePaginationParams(req.query);
     const { sortBy, sortOrder } = parseSortParams(req.query);
     const filter = parseFilterParams(req.query);
-  const contacts = await getAllContacts({
+    const contacts = await getAllContacts({
+    userId,
+    role,
     page,
     perPage,
     sortBy,
@@ -52,6 +55,7 @@ export const getContactByIdController = async (req, res, next) => {
 };
 
 export const createContactController = async (req, res, next) => {
+  const { _id: userId } =req.user;
   const { name, phoneNumber, contactType } = req.body;
   if (!name || !phoneNumber || !contactType) {
     return res.status(400).json({
@@ -59,7 +63,13 @@ export const createContactController = async (req, res, next) => {
       message: 'Name, Phone number and Contact type are required.'
     });
   }
-    const contact = await createContact(req.body);
+
+  const payload = {
+    ...req.body,
+    userId,
+  };
+
+    const contact = await createContact(payload);
     res.status(201).json({
       status: 201,
       message: 'Successfully created a contact!',
@@ -87,8 +97,9 @@ export const patchContactController = async (req, res, next) => {
 
 export const deleteContactController = async (req, res, next) => {
   try {
+    const { _id: userId } = req.user;
     const { contactId } = req.params;
-    const contact = await deleteContact(contactId);
+    const contact = await deleteContact(userId, contactId);
     if (!contact) {
       throw createHttpError(404, 'Contact not found');
     }
