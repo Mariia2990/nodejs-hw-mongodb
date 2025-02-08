@@ -32,7 +32,6 @@ export const getContactsController = async (req, res, next) => {
       status: 200,
       message: 'Successfully found contacts!',
       data: contacts,
-      // pagination: contacts.pagination,
     });
   } catch (error) {
     next(error);
@@ -60,31 +59,49 @@ export const getContactByIdController = async (req, res, next) => {
 
 export const createContactController = async (req, res, next) => {
   try {
-    const { _id: userId } = req.user;
-    const { name, phoneNumber, contactType } = req.body;
+     const { _id: userId } = req.user;
+    const { name, phoneNumber, contactType, email, isFavourite } = req.body;
+    const photo = req.file;
 
-    if (!name || !phoneNumber || !contactType) {
-      return res.status(400).json({
-        status: 400,
-        message: 'Name, Phone number and Contact type are required.',
-      });
+    let photoUrl;
+
+    if (photo) {
+    if (getEnvVar('ENABLE_CLOUDINARY') === 'true') {
+      photoUrl = await saveFileToCloudinary(photo);
+    } else {
+      photoUrl = await saveFileToUploadDir(photo);
     }
+  }
 
-    const payload = {
-      ...req.body,
-      userId,
-    };
-
-    const contact = await createContact(payload);
-    res.status(201).json({
-      status: 201,
-      message: 'Successfully created a contact!',
-      data: contact,
+  if (!name || !phoneNumber || !contactType) {
+    return res.status(400).json({
+      status: 400,
+      message: 'Name, phone number, and contact type are required.',
     });
+  }
+
+  const payload = {
+    name,
+    phoneNumber,
+    contactType,
+    email,
+    isFavourite,
+    userId,
+    photo: photoUrl,
+  };
+
+  const contact = await createContact(payload);
+
+  res.status(201).json({
+    status: 201,
+    message: `Successfully created a contact!`,
+    data: contact,
+  });
   } catch (error) {
     next(error);
   }
 };
+
 export const patchContactController = async (req, res, next) => {
   try {
     const { contactId } = req.params;
@@ -93,7 +110,7 @@ export const patchContactController = async (req, res, next) => {
 
     let photoUrl;
     if (photo) {
-      if (getEnvVar('ENABLE_CLOUDINARY')) {
+      if (getEnvVar('ENABLE_CLOUDINARY') === 'true') {
         photoUrl = await saveFileToCloudinary(photo);
       } else {
         photoUrl = await saveFileToUploadDir(photo);
