@@ -21,10 +21,8 @@ export const getAllContacts = async ({
   if (filter.isFavourite !== undefined) {
     contactsQuery.isFavourite = filter.isFavourite;
   }
-   console.log('🛠 Final query:', contactsQuery);
 
   const contactsCount = await ContactsCollections.countDocuments(contactsQuery);
-console.log('📊 Contacts count:', contactsCount);
   const contacts = await ContactsCollections.find(contactsQuery)
     .skip(skip)
     .limit(limit)
