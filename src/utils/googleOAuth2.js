@@ -11,7 +11,6 @@ const googleOAuthClient = new OAuth2Client({
     clientSecret: getEnvVar('GOOGLE_AUTH_CLIENT_SECRET'),
     redirectUri: oauthConfig.web.redirect_uris[0],
 });
-
 export const generateAuthUrl = () =>
   googleOAuthClient.generateAuthUrl({
     scope: [
