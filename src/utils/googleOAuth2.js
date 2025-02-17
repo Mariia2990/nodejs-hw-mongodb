@@ -1,16 +1,14 @@
-import { readFile } from 'fs/promises';
 import { OAuth2Client } from 'google-auth-library';
-import { getEnvVar } from './getEnvVar.js';
-import path from 'path';
 import createHttpError from 'http-errors';
 
-const PATH_JSON = path.join(process.cwd(), 'GOOGLE_OAUTH_CONFIG');
-const oauthConfig = JSON.parse(await readFile(PATH_JSON));
+const oauthConfig = JSON.parse(process.env.GOOGLE_AUTH_CONFIG || '{}');
+
 const googleOAuthClient = new OAuth2Client({
-    clientId: getEnvVar('GOOGLE_AUTH_CLIENT_ID'),
-    clientSecret: getEnvVar('GOOGLE_AUTH_CLIENT_SECRET'),
-    redirectUri: oauthConfig.web.redirect_uris[0],
+  clientId: process.env.GOOGLE_AUTH_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_AUTH_CLIENT_SECRET,
+  redirectUri: oauthConfig.web?.redirect_uris?.[0],
 });
+
 export const generateAuthUrl = () =>
   googleOAuthClient.generateAuthUrl({
     scope: [
@@ -20,21 +18,21 @@ export const generateAuthUrl = () =>
   });
 
 export const validateCode = async (code) => {
-    const response = await googleOAuthClient.getToken(code);
-    if (!response.tokens.id_token) throw createHttpError(401, 'Unauthorized');
+  const response = await googleOAuthClient.getToken(code);
+  if (!response.tokens.id_token) throw createHttpError(401, 'Unauthorized');
 
-    const ticket = await googleOAuthClient.verifyIdToken({
-        idToken: response.tokens.id_token,
-    });
-    return ticket;
+  const ticket = await googleOAuthClient.verifyIdToken({
+    idToken: response.tokens.id_token,
+  });
+  return ticket;
 };
 
 export const getFullNameFromGoogleTokenPayload = (payload) => {
-    let fullName = 'Guest';
-    if (payload.given_name && payload.family_name) {
-        fullName = `${payload.given_name} ${payload.family_name}`;
-    } else if (payload.given_name) {
-        fullName = payload.given_name;
-    }
-    return fullName;
+  let fullName = 'Guest';
+  if (payload.given_name && payload.family_name) {
+    fullName = `${payload.given_name} ${payload.family_name}`;
+  } else if (payload.given_name) {
+    fullName = payload.given_name;
+  }
+  return fullName;
 };
